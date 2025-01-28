@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="weatherApp">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Weather Dashboard</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+    <style>
+      body {
+        font-family: "Open Sans", Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background: linear-gradient(to right, #1e3c72, #2a5298);
+        color: #f0f0f0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      .container {
+        text-align: center;
+        max-width: 450px;
+        padding: 30px;
+        background: #222831;
+        border-radius: 20px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        animation: fadeIn 0.5s ease-in-out;
+      }
+
+      h1 {
+        margin-bottom: 25px;
+        font-size: 2.5rem;
+        color: #00adb5;
+        text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.4);
+      }
+
+      .search-bar {
+        margin-bottom: 25px;
+        display: flex;
+        justify-content: center;
+      }
+
+      .search-bar input {
+        width: 70%;
+        padding: 12px;
+        font-size: 1rem;
+        border: 2px solid #00adb5;
+        border-radius: 15px;
+        outline: none;
+        background: #393e46;
+        color: #f0f0f0;
+        transition: 0.3s;
+      }
+
+      .search-bar input:focus {
+        border-color: #eeeeee;
+        box-shadow: 0 0 10px rgba(238, 238, 238, 0.7);
+      }
+
+      .search-bar button {
+        padding: 12px 25px;
+        font-size: 1rem;
+        font-weight: bold;
+        background: #00adb5;
+        color: #ffffff;
+        border: none;
+        border-radius: 15px;
+        margin-left: 10px;
+        cursor: pointer;
+        transition: 0.3s;
+      }
+
+      .search-bar button:hover {
+        background: #007d88;
+        box-shadow: 0 5px 10px rgba(0, 125, 136, 0.3);
+      }
+
+      .weather-details {
+        margin-top: 25px;
+        padding: 20px;
+        background: #393e46;
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      }
+
+      .weather-details h2 {
+        margin: 0;
+        font-size: 1.8rem;
+        color: #eeeeee;
+      }
+
+      .weather-details p {
+        font-size: 1rem;
+        margin: 10px 0;
+        color: #d6d6d6;
+      }
+
+      .weather-details button {
+        margin-top: 15px;
+        padding: 12px 20px;
+        font-size: 1rem;
+        font-weight: bold;
+        background: #00adb5;
+        color: #ffffff;
+        border: none;
+        border-radius: 15px;
+        cursor: pointer;
+        transition: 0.3s;
+      }
+
+      .weather-details button:hover {
+        background: #007d88;
+        box-shadow: 0 5px 10px rgba(0, 125, 136, 0.3);
+      }
+
+      .error-message {
+        margin-top: 20px;
+        padding: 15px;
+        background: #ff4d4d;
+        border: 1px solid #ff1e1e;
+        border-radius: 15px;
+        color: #ffffff;
+        font-weight: bold;
+      }
+
+      .favorites {
+        margin-top: 25px;
+        background: #222831;
+        border-radius: 15px;
+        padding: 20px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      }
+
+      .favorites h3 {
+        font-size: 1.5rem;
+        color: #00adb5;
+        margin-bottom: 15px;
+      }
+
+      .favorites ul {
+        list-style: none;
+        padding: 0;
+      }
+
+      .favorites li {
+        padding: 10px 0;
+        font-size: 1rem;
+        color: #eeeeee;
+        cursor: pointer;
+        transition: 0.3s;
+      }
+
+      .favorites li:hover {
+        color: #00adb5;
+        font-weight: bold;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(-20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    </style>
+  </head>
+  <body ng-controller="WeatherController">
+    <div class="container">
+      <h1>Weather Dashboard</h1>
+      <div class="search-bar">
+        <input type="text" ng-model="city" placeholder="Enter city name" />
+        <button ng-click="getWeather()">Get Weather</button>
+      </div>
+      <div class="weather-details" ng-if="weather">
+        <h2>{{ weather.name }}</h2>
+        <p><strong>Temperature:</strong> {{ weather.main.temp }}°C</p>
+        <p><strong>Humidity:</strong> {{ weather.main.humidity }}%</p>
+        <p><strong>Condition:</strong> {{ weather.weather[0].description }}</p>
+        <button ng-click="addFavorite(weather.name)">Add to Favorites</button>
+      </div>
+      <div class="error-message" ng-if="errorMessage">
+        <p>{{ errorMessage }}</p>
+      </div>
+      <div class="favorites" ng-if="favorites.length > 0">
+        <h3>Favorite Cities</h3>
+        <ul>
+          <li ng-repeat="city in favorites | orderBy">{{ city }}</li>
+        </ul>
+      </div>
+    </div>
+    <script>
+      const app = angular.module("weatherApp", []);
+
+      app.controller("WeatherController", function ($scope, $http) {
+        const API_KEY = "8340dd4cd2d28e729a40aeaa8b8a18ed";
+
+        $scope.city = "";
+        $scope.weather = null;
+        $scope.errorMessage = null;
+        $scope.favorites = [];
+
+        $scope.getWeather = function () {
+          if (!$scope.city) {
+            $scope.errorMessage = "Please enter a city name.";
+            return;
+          }
+
+          base_url = "http://api.openweathermap.org/data/2.5/weather?";
+          const url = base_url + "appid=" + API_KEY + "&q=" + $scope.city + "&units=metric";
+          $http.get(url).then(
+            function (response) {
+              $scope.weather = response.data;
+              $scope.errorMessage = null;
+            },
+            function (error) {
+              $scope.weather = null;
+              $scope.errorMessage =
+                "City not found or API error. Please try again.";
+            }
+          );
+        };
+
+        $scope.addFavorite = function (city) {
+          if (!$scope.favorites.includes(city)) {
+            $scope.favorites.push(city);
+          }
+        };
+      });
+    </script>
+  </body>
+</html>
